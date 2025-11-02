@@ -4,23 +4,27 @@ import re
 import datetime
 import pickle
 
+
 class Field:
     """
     Base class for fields in a contact record.
     """
+
     def __init__(self, value):
         self.value = value
-    
+
     def __str__(self):
         return str(self.value)
+
 
 class Name(Field):
     """
     Class for contact name with validation.
     """
+
     def __init__(self, name):
         super().__init__(Name.__validate_name(name))
-    
+
     @staticmethod
     def __validate_name(name: str) -> str:
         """
@@ -29,23 +33,26 @@ class Name(Field):
 
         Return: Cleaned name if valid, raise an error otherwise.
         """
-        clean_name = name.strip().replace("  "," ")
+        clean_name = name.strip().replace("  ", " ")
         if clean_name.isalpha():
             clean_name = re.findall(r"[A-Za-zА-Яа-яЁёЇїІіЄєҐґ\s]+", clean_name)
             if isinstance(clean_name, list) and clean_name:
                 clean_name = clean_name[0]
             if clean_name:
                 return clean_name
-        raise ValueError("Invalid name format. Name should contain only letters and spaces")
-    
+        raise ValueError(
+            "Invalid name format. Name should contain only letters and spaces"
+        )
+
 
 class Phone(Field):
     """
     Class for contact phone number with validation.
     """
+
     def __init__(self, number: str):
         super().__init__(Phone.__normalize_phone(number))
-    
+
     def __eq__(self, other):
         return isinstance(other, Phone) and self.value == other.value
 
@@ -58,19 +65,25 @@ class Phone(Field):
         Return: str The normalized phone number or an empty string if invalid.
         """
         try:
-            phone_number = phone_number.strip().replace(" ","")
-            phone_number = phone_number[phone_number.index("0"):]
-            found_number = re.fullmatch(r"(\d{3})[\s\t()\n-]*(\d{3})[\s\t()\n-]*(\d{2})[\s\t()\n-]*(\d{2})", phone_number)
+            phone_number = phone_number.strip().replace(" ", "")
+            phone_number = phone_number[phone_number.index("0") :]
+            found_number = re.fullmatch(
+                r"(\d{3})[\s\t()\n-]*(\d{3})[\s\t()\n-]*(\d{2})[\s\t()\n-]*(\d{2})",
+                phone_number,
+            )
             found_number = f"+38{found_number[0]}"
             _ = found_number[12]  # Test if the string is long enough
             return found_number
         except:
-            raise ValueError("Invalid phone number format. Expected format: +380-XXX-XXX-XX-XX.")
+            raise ValueError(
+                "Invalid phone number format. Expected format: +380-XXX-XXX-XX-XX."
+            )
+
 
 class Birthday(Field):
     def __init__(self, value):
         super().__init__(Birthday.__validate_birthday(value))
-    
+
     @staticmethod
     def __validate_birthday(birthday_str: str) -> datetime.date:
         """
@@ -80,15 +93,17 @@ class Birthday(Field):
         Return: datetime.date The validated birthday date.
         """
         try:
-            day, month, year = map(int, birthday_str.split('.'))
+            day, month, year = map(int, birthday_str.split("."))
             return datetime.date(year=year, month=month, day=day)
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
+
 
 class Record:
     """
     Class representing a contact record.
     """
+
     def __init__(self, name):
         self.name = self.add_name(name)
         self.phones = []
@@ -109,7 +124,6 @@ class Record:
             return True, f"Phone number {number} added"
         except ValueError as e:
             return False, str(e)
-
 
     def delete_phone(self, number):
         phone = self.find_phone(number)
@@ -147,7 +161,7 @@ class Record:
 
     def show_birthday(self):
         if self.birthday:
-            return self.birthday.value.strftime('%d.%m.%Y')
+            return self.birthday.value.strftime("%d.%m.%Y")
         return "Birthday not set"
 
     def birthdays(self):
@@ -158,10 +172,12 @@ class Record:
     def __str__(self):
         return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
 
+
 class AddressBook(UserDict):
     """
     Class representing an address book.
     """
+
     def add_contact(self, record: Record):
         try:
             self.data[record.name.value] = record
@@ -177,7 +193,7 @@ class AddressBook(UserDict):
             del self.data[name]
         else:
             raise KeyError("Contact not found")
-    
+
     # Оновити методи для роботи з контактами
     def get_upcoming_birthdays(self) -> list:
         """
@@ -196,41 +212,61 @@ class AddressBook(UserDict):
             if not user.birthday:
                 continue
             # Calculate this year's and next year's (if this year has passed) birthday dates
-            this_year_birthday = user.birthday.value.replace(year=datetime.datetime.now().year)
-            next_year_birthday = this_year_birthday.replace(year=datetime.datetime.now().year + 1)
+            this_year_birthday = user.birthday.value.replace(
+                year=datetime.datetime.now().year
+            )
+            next_year_birthday = this_year_birthday.replace(
+                year=datetime.datetime.now().year + 1
+            )
 
             # If birthday is during this year within the next 7 days
             if now_date <= this_year_birthday <= treshold_date:
                 if this_year_birthday.weekday() in (5, 6):
-                    celebration_date = this_year_birthday + datetime.timedelta(days=(7 - this_year_birthday.weekday())) # Move to next Monday
+                    celebration_date = this_year_birthday + datetime.timedelta(
+                        days=(7 - this_year_birthday.weekday())
+                    )  # Move to next Monday
                 else:
                     celebration_date = this_year_birthday
-                celebrations.append({'name': user.name.value, 'congratulation_date': celebration_date.strftime("%Y.%m.%d")})
+                celebrations.append(
+                    {
+                        "name": user.name.value,
+                        "congratulation_date": celebration_date.strftime("%Y.%m.%d"),
+                    }
+                )
             # If birthday has already passed this year, check next year's birthday
             elif now_date > this_year_birthday and next_year_birthday <= treshold_date:
                 if next_year_birthday.weekday() in (5, 6):
-                    celebration_date = next_year_birthday + datetime.timedelta(days=(7 - next_year_birthday.weekday())) # Move to next Monday
+                    celebration_date = next_year_birthday + datetime.timedelta(
+                        days=(7 - next_year_birthday.weekday())
+                    )  # Move to next Monday
                 else:
                     celebration_date = next_year_birthday
-                celebrations.append({'name': user.name.value, 'congratulation_date': celebration_date.strftime("%Y.%m.%d")})
+                celebrations.append(
+                    {
+                        "name": user.name.value,
+                        "congratulation_date": celebration_date.strftime("%Y.%m.%d"),
+                    }
+                )
             # Continue searching
             else:
                 continue
-        return celebrations 
+        return celebrations
+
 
 def input_error(func):
     """
     Decorator to handle input errors for command functions.
     """
     expected_num_args = {
-        'add_contact': 2,
-        'change_phone': 3,
-        'show_phone': 1,
-        'show_all_contacts': 0,
-        'add_birthday': 2,
-        'show_birthday': 1,
-        'birthdays': 0,
+        "add_contact": 2,
+        "change_phone": 3,
+        "show_phone": 1,
+        "show_all_contacts": 0,
+        "add_birthday": 2,
+        "show_birthday": 1,
+        "birthdays": 0,
     }
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         command = func.__name__
@@ -241,6 +277,7 @@ def input_error(func):
         return func(*args, **kwargs)
 
     return wrapper
+
 
 def parse_input(user_input: str):
     """
@@ -253,6 +290,7 @@ def parse_input(user_input: str):
     command = parts[0].lower() if parts else ""
     args = parts[1:] if len(parts) > 1 else []
     return command, args
+
 
 @input_error
 def add_contact(*args, book: AddressBook):
@@ -275,6 +313,7 @@ def add_contact(*args, book: AddressBook):
             message = message[1]
     return message
 
+
 @input_error
 def change_phone(*args, book: AddressBook):
     """
@@ -291,6 +330,7 @@ def change_phone(*args, book: AddressBook):
     record.edit_phone(old_phone, new_phone)
     return "Phone number updated."
 
+
 @input_error
 def show_phone(*args, book: AddressBook):
     """
@@ -304,8 +344,9 @@ def show_phone(*args, book: AddressBook):
     record = book.find_contact(name)
     if record is None:
         return "Contact not found."
-    phones = ', '.join(phone.value for phone in record.phones)
+    phones = ", ".join(phone.value for phone in record.phones)
     return f"Phone numbers for {name}: {phones}"
+
 
 @input_error
 def show_all_contacts(book: AddressBook):
@@ -319,9 +360,10 @@ def show_all_contacts(book: AddressBook):
         return "Address book is empty."
     result = []
     for record in book.data.values():
-        phones = ', '.join(phone.value for phone in record.phones)
+        phones = ", ".join(phone.value for phone in record.phones)
         result.append(f"{record.name.value}: {phones}")
     return "\n".join(result)
+
 
 @input_error
 def add_birthday(*args, book: AddressBook):
@@ -338,6 +380,7 @@ def add_birthday(*args, book: AddressBook):
         return "Contact not found."
     return record.add_birthday(birthday_str)[1]
 
+
 @input_error
 def show_birthday(*args, book: AddressBook):
     """
@@ -352,6 +395,7 @@ def show_birthday(*args, book: AddressBook):
     if record is None:
         return "Contact not found."
     return record.show_birthday()
+
 
 @input_error
 def birthdays(book: AddressBook):
@@ -369,16 +413,19 @@ def birthdays(book: AddressBook):
         result.append(f"{entry['name']}: {entry['congratulation_date']}")
     return "\n".join(result)
 
+
 def save_data(book, filename="addressbook.pkl"):
     with open(filename, "wb") as f:
         pickle.dump(book, f)
+
 
 def load_data(filename="addressbook.pkl"):
     try:
         with open(filename, "rb") as f:
             return pickle.load(f)
     except FileNotFoundError:
-        return AddressBook() 
+        return AddressBook()
+
 
 def main():
     book = load_data()
@@ -395,29 +442,33 @@ def main():
         elif command == "hello":
             print("How can I help you?")
 
-        elif command == "add": # 3 args: command, name, phone
+        elif command == "add":  # 3 args: command, name, phone
             print(add_contact(*args, book=book))
 
-        elif command in ["change", "update"]: # 4 args: command, name, old_phone, new_phone
+        elif command in [
+            "change",
+            "update",
+        ]:  # 4 args: command, name, old_phone, new_phone
             print(change_phone(*args, book=book))
 
-        elif command in ["show", "phone"]: # 2 args: command, name
+        elif command in ["show", "phone"]:  # 2 args: command, name
             print(show_phone(*args, book=book))
 
-        elif command in ["show-all", "all", "contacts"]: # 1 arg: command
+        elif command in ["show-all", "all", "contacts"]:  # 1 arg: command
             print(show_all_contacts(book=book))
 
-        elif command == "add-birthday": # 3 args: command, name, birthday
+        elif command == "add-birthday":  # 3 args: command, name, birthday
             print(add_birthday(*args, book=book))
 
-        elif command in ["birthday", "show-birthday"]: # 2 args: command, name
+        elif command in ["birthday", "show-birthday"]:  # 2 args: command, name
             print(show_birthday(*args, book=book))
 
-        elif command in ["birthdays", "upcoming-birthdays"]: # 1 arg: command
+        elif command in ["birthdays", "upcoming-birthdays"]:  # 1 arg: command
             print(birthdays(book=book))
 
         else:
             print("Invalid command.")
+
 
 if __name__ == "__main__":
     main()
